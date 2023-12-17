@@ -1,61 +1,19 @@
-// let createError = require('http-errors');
-// let express = require('express');
-// let path = require('path');
-// let cookieParser = require('cookie-parser');
-// let logger = require('morgan');
-//
-// let indexRouter = require('./routes/index');
-// let usersRouter = require('./routes/users');
-//
-// let app = express();
-//
-// // view engine setup
-// app.set('views', path.join(__dirname, 'views'));
-// app.set('view engine', 'pug');
-//
-// app.use(logger('dev'));
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: false }));
-// app.use(cookieParser());
-// app.use(express.static(path.join(__dirname, 'public')));
-//
-// app.use('/', indexRouter);
-// app.use('/users', usersRouter);
-//
-// // catch 404 and forward to error handler
-// app.use(function(req, res, next) {
-//   next(createError(404));
-// });
-//
-// // error handler
-// app.use(function(err, req, res, next) {
-//   // set locals, only providing error in development
-//   res.locals.message = err.message;
-//   res.locals.error = req.app.get('env') === 'development' ? err : {};
-//
-//   // render the error page
-//   res.status(err.status || 500);
-//   res.render('error');
-// });
-//
-// module.exports = app;
+
 const {Telegraf, Scenes, session} = require('telegraf');
-// const { enter, leave } = Scenes.Stage;
-
-// const { Scenes } = require('telegraf');
-
-// import { Scenes } from "telegraf";
-// const { s } = require('telegraf/Scenes');
-
 const axios = require('axios').default;
 const {v4: uuidv4} = require('uuid');
-
+const countries = require('iso-639-1');
+const {response} = require("express");
+const fs = require('fs');
+const cheerio = require("cheerio");
+const { ZenRows } = require("zenrows");
 // tokens of translator and bot
-let key = "e19e8ef57d4542c1af6e7ba2a88f0758";
-let endpoint = "https://api.cognitive.microsofttranslator.com";
-let botToken = '6706534572:AAHV4PmvziuVhyluQB86HPOKY8kClhMNDvE';
-// location, also known as region.
-let location = "northeurope";
+const key = "e19e8ef57d4542c1af6e7ba2a88f0758";
+const endpoint = "https://api.cognitive.microsofttranslator.com";
+const botToken = '6706534572:AAHV4PmvziuVhyluQB86HPOKY8kClhMNDvE';
+const location = "northeurope";
+const scrapingKey="7cd2f706772a1a0b67afb9f31f9899664b803fdb";
+const scrapingUrl = "https://parade.com/968666/parade/chuck-norris-jokes/";
 
 const contactWizard = new Scenes.WizardScene(
     'CONVERSATION_ID', // first argument is Scene_ID, same as for BaseScene
@@ -65,43 +23,101 @@ const contactWizard = new Scenes.WizardScene(
         return ctx.wizard.next();
     },
     (ctx) => {
-        // validation example
-        let re = new RegExp("set language (?<lan>[a-zA-Z]+)", "g");
-        const match = ctx.message.text.match(re);
+        const regex = /^set language (?<lan>[a-zA-Z]+)$/;
+        const text = ctx.message.text;
+        const match = text.match(regex);
+
         if (!match) {
             ctx.reply('enter a legal language');
             return;
         }
-        if (match[0])
-            ctx.wizard.state.contactData.fio = ctx.message.text;
-        ctx.reply('Enter your e-mail');
-        return ctx.wizard.next();
+        ctx.wizard.state.data.language = languageNameToCode(match[1]);
+        if (!ctx.wizard.state.data.language) {
+            ctx.reply('enter a legal language');
+            return;
+        }
+        return translate("No Problem", ctx.wizard.state.data.language).then(
+            ((translated)=>{
+                ctx.reply(translated.data[0]["translations"][0]["text"]);
+                return ctx.wizard.next();
+            })
+        );
     },
-    async (ctx) => {
-        ctx.wizard.state.contactData.email = ctx.message.text;
-        ctx.reply('Thank you for your replies, well contact your soon');
-        await mySendContactDataMomentBeforeErase(ctx.wizard.state.contactData);
+    (ctx) => {
+        const match = ctx.message.text.match(/^[0-9]+$/);
+        ctx.wizard.state.data.jokeCode = ctx.message.text;
+        if(!match||(match&& (1>ctx.message.text)||ctx.message.text>101)){
+            translate("Enter a number in the range 1-101", ctx.wizard.state.data.language).then(
+                ((translated)=>{
+                    ctx.reply(translated.data[0]["translations"][0]["text"]);
+                })
+            );
+            return;
+        }
+        axios.get("https://parade.com/968666/parade/chuck-norris-jokes/")
+            .then((res)=>{console.log(res.data);});
+        // ctx.reply('Thank you for your replies, well contact your soon');
         return ctx.scene.leave();
     },
 );
 
 const bot = new Telegraf(botToken);
 
-// // bot.start((ctx) => ctx.reply('Welcome'))
-// // bot.help((ctx) => ctx.reply('Send me a sticker'))
 const stage = new Scenes.Stage([contactWizard]);
 bot.use(session());
 bot.use(stage.middleware());
 bot.command('start', (ctx) => ctx.scene.enter('CONVERSATION_ID'));
 bot.launch();
 
+
+
+async function getJoke(jokeNumber) {
+
+        // const client = new ZenRows(scrapingKey);
+
+        // try {
+        //     const { data } = await client.get(scrapingUrl, {
+        //         "js_render": "true",
+        //         "antibot": "true",
+        //         "premium_proxy": "true"
+        //     });
+        //     const $ = cheerio.load(data.toString());
+        //     let joke = $('ol').find("li:nth-child(jokeNumber)").text();
+        //     joke = joke.replace(/(\r\n|\n|\r)/gm, "");
+        //     return joke;
+        //
+        // } catch (error) {
+        //     console.error(error.message);
+        //     if (error.response) {
+        //         console.error(error.response.data);
+        //     }
+        // }
+
+    fs.readFile('C:/Users/galx/IdeaProjects/LetsTryNow/htmlData', function (err, data) {
+        if (err) {
+            throw err;
+        }
+        const $ = cheerio.load(data.toString());
+        let joke = $('ol').find("li:nth-child(jokeNumber)").text();
+        joke = joke.replace(/(\r\n|\n|\r)/gm, "");
+        console.log(joke);
+    });
+}
+
+function languageNameToCode(languageName) {
+    try {
+        return countries.getCode(languageName);
+    } catch (error) {
+        return null;
+    }
+}
+
 function translate(strToTranslate, language) {
     let params = new URLSearchParams();
     params.append("api-version", "3.0");
     params.append("from", "en");
     params.append("to", language);
-
-    axios({
+    return axios({
         baseURL: endpoint,
         url: '/translate',
         method: 'post',
@@ -113,11 +129,8 @@ function translate(strToTranslate, language) {
         },
         params: params,
         data: [{
-            'textToTranslate': strToTranslate
+            'text': strToTranslate
         }],
         responseType: 'json'
-    }).then(function (response) {
-        // console.log(JSON.stringify(response.data, null, 4));
-        console.log(response.data[0].text)
-    })
+    }).then((response) => response).catch(err => console.log(err));
 }
