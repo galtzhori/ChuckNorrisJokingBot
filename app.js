@@ -2,17 +2,18 @@ const {Telegraf, Scenes, session} = require('telegraf');
 const axios = require('axios').default;
 const {v4: uuidv4} = require('uuid');
 const countries = require('iso-639-1');
-const {response} = require("express");
-const fs = require('fs').promises;
+// const fs = require('fs').promises;
 const cheerio = require("cheerio");
 const {ZenRows} = require("zenrows");
+require('dotenv').config();
+
 // tokens of translator and bot
-const key = "e19e8ef57d4542c1af6e7ba2a88f0758";
-const endpoint = "https://api.cognitive.microsofttranslator.com";
-const botToken = '6706534572:AAHV4PmvziuVhyluQB86HPOKY8kClhMNDvE';
-const location = "northeurope";
-const scrapingKey = "7cd2f706772a1a0b67afb9f31f9899664b803fdb";
-const scrapingUrl = "https://parade.com/968666/parade/chuck-norris-jokes/";
+const key = process.env.translateKey;
+const endpoint = process.env.endpoint;
+const botToken = process.env.botToken;
+const location = process.env.location;
+const scrapingKey = process.env.scrapingKey;
+const scrapingUrl = process.env.scrapingUrl;
 
 const contactWizard = new Scenes.WizardScene(
     'CONVERSATION_ID',
@@ -74,29 +75,29 @@ bot.launch();
 
 async function getJoke(jokeNumber) {
 
-    // const client = new ZenRows(scrapingKey);
-    // try {
-    //     const { data } = await client.get(scrapingUrl, {
-    //         "js_render": "true",
-    //         "antibot": "true",
-    //         "premium_proxy": "true"
-    //     });
-    //     const $ = cheerio.load(data.toString());
-    //     let joke = $('ol').find(`li:nth-child(${jokeNumber})`).text();
-    //     joke = joke.replace(/(\r\n|\n|\r)/gm, "");
-    //     return jokeNumber+". "+joke;
-    //
-    // } catch (error) {
-    //     console.error(error.message);
-    //     if (error.response) {
-    //         console.error(error.response.data);
-    //     }
-    // }
-    const data = await fs.readFile('C:/Users/galx/IdeaProjects/LetsTryNow/htmlData', 'utf8');
-    const $ = cheerio.load(data.toString());
-    let joke = $('ol').find(`li:nth-child(${jokeNumber})`).text();
-    joke = joke.replace(/(\r\n|\n|\r)/gm, "");
-    return jokeNumber+". "+joke;
+    const client = new ZenRows(scrapingKey);
+    try {
+        const { data } = await client.get(scrapingUrl, {
+            "js_render": "true",
+            "antibot": "true",
+            "premium_proxy": "true"
+        });
+        const $ = cheerio.load(data.toString());
+        let joke = $('ol').find(`li:nth-child(${jokeNumber})`).text();
+        joke = joke.replace(/(\r\n|\n|\r)/gm, "");
+        return jokeNumber+". "+joke;
+
+    } catch (error) {
+        console.error(error.message);
+        if (error.response) {
+            console.error(error.response.data);
+        }
+    }
+    // const data = await fs.readFile('C:/Users/galx/IdeaProjects/LetsTryNow/htmlData', 'utf8');
+    // const $ = cheerio.load(data.toString());
+    // let joke = $('ol').find(`li:nth-child(${jokeNumber})`).text();
+    // joke = joke.replace(/(\r\n|\n|\r)/gm, "");
+    // return jokeNumber+". "+joke;
 }
 
 function languageNameToCode(languageName) {
