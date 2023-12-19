@@ -16,6 +16,6 @@ Features
  - Open a telegram window
  - Look for ChuckNorrisJokingBot in the free search bar
  - hit /start
- - enter "set language <language>"
+ - enter "set language \<language\>"
  - enter joke number between 1 to 101.
  - hit /start again to continue
