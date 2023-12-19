@@ -64,20 +64,23 @@ const contactWizard = new Scenes.WizardScene(
 
     },
 );
-
-const bot = new Telegraf(botToken);
-const stage = new Scenes.Stage([contactWizard]);
-bot.use(session());
-bot.use(stage.middleware());
-bot.command('start', (ctx) => ctx.scene.enter('CONVERSATION_ID'));
-bot.launch();
+try {
+    const bot = new Telegraf(botToken);
+    const stage = new Scenes.Stage([contactWizard]);
+    bot.use(session());
+    bot.use(stage.middleware());
+    bot.command('start', (ctx) => ctx.scene.enter('CONVERSATION_ID'));
+    bot.launch();
+} catch (err) {
+    console.log("Error: " + err);
+}
 
 
 async function getJoke(jokeNumber) {
 
     const client = new ZenRows(scrapingKey);
     try {
-        const { data } = await client.get(scrapingUrl, {
+        const {data} = await client.get(scrapingUrl, {
             "js_render": "true",
             "antibot": "true",
             "premium_proxy": "true"
@@ -85,7 +88,7 @@ async function getJoke(jokeNumber) {
         const $ = cheerio.load(data.toString());
         let joke = $('ol').find(`li:nth-child(${jokeNumber})`).text();
         joke = joke.replace(/(\r\n|\n|\r)/gm, "");
-        return jokeNumber+". "+joke;
+        return jokeNumber + ". " + joke;
 
     } catch (error) {
         console.error(error.message);

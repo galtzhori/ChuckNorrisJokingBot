@@ -1,6 +1,7 @@
 # Project exclude paths
-/node_modules/
+node_modules
 .env
-/bin/
-/routes/
+bin
+routes
 .idea
+public
